@@ -44,6 +44,11 @@ const TYPE_WEIGHTS = {
   Metric: 3
 };
 
+const HASH_KEYS = [
+  'schemaVersion', 'graphRevision', 'requestedSeeds', 'resolvedSeeds', 'resolution',
+  'nodes', 'edges', 'ranking', 'contradictions', 'omittedNodeIds', 'policy'
+];
+
 const clone = value => structuredClone(value);
 
 function canonical(value) {
@@ -87,8 +92,7 @@ function recencyScores(nodes) {
   const span = Math.max(1, max - min);
   return new Map(nodes.map(node => {
     const ts = timestampFor(node);
-    const score = ts > 0 ? ((ts - min) / span) * 5 : 0;
-    return [node.id, score];
+    return [node.id, ts > 0 ? ((ts - min) / span) * 5 : 0];
   }));
 }
 
@@ -164,6 +168,10 @@ function contradictionSet(state, ids) {
   return required;
 }
 
+function hashPayload(context) {
+  return Object.fromEntries(HASH_KEYS.map(key => [key, clone(context[key])]));
+}
+
 export function validateContextPolicy(policy) {
   invariant(policy && typeof policy === 'object', 'Context policy is required');
   invariant(Number.isInteger(policy.maxHops) && policy.maxHops >= 0, 'context.maxHops must be a non-negative integer');
@@ -189,7 +197,7 @@ export function buildRankedContext(input, seedIds, policy) {
   const ranked = candidates.map(candidate => ({
     ...candidate,
     score: scoreCandidate(candidate, recency, seedSet, policy.preferVerified)
-  })).sort((a, b) => b.score - a.score || a.hop - b.hop || a.node.id.localeCompare(b.node.id));
+  }));
 
   const forcedContradictions = policy.includeContradictions
     ? contradictionSet(state, ranked.map(item => item.node.id))
@@ -202,57 +210,56 @@ export function buildRankedContext(input, seedIds, policy) {
   }
 
   const ordered = ranked.sort((a, b) => {
+    const aSeed = seedSet.has(a.node.id) ? 1 : 0;
+    const bSeed = seedSet.has(b.node.id) ? 1 : 0;
     const aForced = forcedContradictions.has(a.node.id) ? 1 : 0;
     const bForced = forcedContradictions.has(b.node.id) ? 1 : 0;
-    return bForced - aForced || b.score - a.score || a.hop - b.hop || a.node.id.localeCompare(b.node.id);
+    return bSeed - aSeed || bForced - aForced || b.score - a.score || a.hop - b.hop || a.node.id.localeCompare(b.node.id);
   });
 
-  const selected = [];
-  let usedTokens = estimatedTokens({ seeds: resolvedSeeds, nodes: [], edges: [] });
-  for (const candidate of ordered) {
-    if (selected.length >= policy.maxNodes) break;
-    const projected = estimatedTokens(candidate.node);
-    if (usedTokens + projected > policy.maxTokens) {
-      if (seedSet.has(candidate.node.id)) {
-        throw new Error(`Context token budget too small for required seed ${candidate.node.id}`);
-      }
-      continue;
-    }
-    selected.push({ ...candidate, node: clone(candidate.node) });
-    usedTokens += projected;
+  let selected = ordered.slice(0, policy.maxNodes).map(item => ({ ...item, node: clone(item.node) }));
+
+  const assemble = selectedItems => {
+    const selectedIds = new Set(selectedItems.map(item => item.node.id));
+    const edges = state.edges.filter(edge => selectedIds.has(edge.from) && selectedIds.has(edge.to)).map(clone);
+    const contradictions = edges.filter(edge => edge.type === 'CONTRADICTS').map(edge => ({ id: edge.id, from: edge.from, to: edge.to }));
+    const nodes = selectedItems.map(item => item.node);
+    const ranking = selectedItems.map(item => ({ id: item.node.id, score: Number(item.score.toFixed(3)), hop: item.hop, status: item.node.status ?? null }));
+    const omittedNodeIds = ordered.map(item => item.node.id).filter(id => !selectedIds.has(id));
+    return {
+      schemaVersion: 1,
+      graphRevision: state.revision ?? 0,
+      requestedSeeds: [...seedIds],
+      resolvedSeeds,
+      resolution,
+      nodes,
+      edges,
+      ranking,
+      contradictions,
+      omittedNodeIds,
+      policy: clone(policy)
+    };
+  };
+
+  let payload = assemble(selected);
+  while (estimatedTokens(payload) > policy.maxTokens) {
+    const removableIndex = [...selected].map((item, index) => ({ item, index })).reverse().find(({ item }) => !seedSet.has(item.node.id))?.index;
+    invariant(removableIndex !== undefined, `Context token budget too small for required seed set (${estimatedTokens(payload)} > ${policy.maxTokens})`);
+    selected.splice(removableIndex, 1);
+    payload = assemble(selected);
   }
 
-  const selectedIds = new Set(selected.map(item => item.node.id));
+  const selectedIds = new Set(payload.nodes.map(node => node.id));
   for (const seedId of resolvedSeeds) invariant(selectedIds.has(seedId), `Required context seed omitted: ${seedId}`);
 
-  const edges = state.edges.filter(edge => selectedIds.has(edge.from) && selectedIds.has(edge.to)).map(clone);
-  const contradictions = edges.filter(edge => edge.type === 'CONTRADICTS').map(edge => ({ id: edge.id, from: edge.from, to: edge.to }));
-  const nodes = selected.map(item => item.node);
-  const ranking = selected.map(item => ({ id: item.node.id, score: Number(item.score.toFixed(3)), hop: item.hop, status: item.node.status ?? null }));
-  const omittedNodeIds = ordered.map(item => item.node.id).filter(id => !selectedIds.has(id));
-
-  const payload = {
-    schemaVersion: 1,
-    graphRevision: state.revision ?? 0,
-    requestedSeeds: [...seedIds],
-    resolvedSeeds,
-    resolution,
-    nodes,
-    edges,
-    ranking,
-    contradictions,
-    omittedNodeIds,
-    policy: clone(policy)
-  };
   const contextHash = crypto.createHash('sha256').update(stableStringify(payload)).digest('hex');
   const finalTokens = estimatedTokens(payload);
-  invariant(finalTokens <= policy.maxTokens, `Serialized context exceeds token budget (${finalTokens} > ${policy.maxTokens})`);
 
   return {
     ...payload,
     contextHash,
     estimatedTokens: finalTokens,
-    truncated: omittedNodeIds.length > 0,
+    truncated: payload.omittedNodeIds.length > 0,
     unchangedFrom: priorHash => priorHash === contextHash
   };
 }
@@ -264,10 +271,7 @@ export function serializeContext(context, { pretty = false } = {}) {
 }
 
 export function contextHashFor(context) {
-  const serializable = { ...context };
-  delete serializable.unchangedFrom;
-  delete serializable.contextHash;
-  return crypto.createHash('sha256').update(stableStringify(serializable)).digest('hex');
+  return crypto.createHash('sha256').update(stableStringify(hashPayload(context))).digest('hex');
 }
 
 export { estimatedTokens };
