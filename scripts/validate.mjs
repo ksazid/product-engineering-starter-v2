@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { validateBudget, validateGraph, invariant } from '../src/core.mjs';
+import { validateBudget, invariant } from '../src/core.mjs';
+import { validateGraphMemoryState } from '../src/graph-memory.mjs';
 import { validateEvaluatorContract } from '../src/ratchet-engine.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -12,10 +13,17 @@ const ratchetRuns = read('state/ratchet-runs.json');
 invariant(config.version === 2, 'PES configuration must be version 2');
 invariant(['lite','standard','enterprise'].includes(config.mode), 'Unsupported PES mode');
 validateBudget(config.budgets);
-invariant(Number.isInteger(config.ratchet.maxAttemptsPerRun) && config.ratchet.maxAttemptsPerRun > 0, 'ratchet.maxAttemptsPerRun must be positive');
+
 invariant(config.ratchet.requireEvaluationBeforeKeep === true, 'PES v2 requires evaluation before keep');
 invariant(config.ratchet.revertOnRegression === true, 'PES v2 requires revert on regression');
-validateGraph(graph);
+invariant(Number.isInteger(config.ratchet.maxAttemptsPerRun) && config.ratchet.maxAttemptsPerRun > 0, 'ratchet.maxAttemptsPerRun must be positive');
+
+invariant(config.graph.enabled === true, 'PES v2 graph memory must be enabled');
+invariant(config.graph.appendOnly === true, 'PES v2 graph memory must be append-only');
+invariant(config.graph.requireWriteProvenance === true, 'PES v2 graph memory requires write provenance');
+invariant(config.graph.rejectConflictingIds === true, 'PES v2 graph memory must reject conflicting ids');
+invariant(config.graph.immutableSupersession === true, 'PES v2 requires immutable supersession');
+validateGraphMemoryState(graph, { requireObjectProvenance: config.graph.requireWriteProvenance });
 
 invariant(ratchetRuns.schemaVersion === 1 && Array.isArray(ratchetRuns.runs), 'Invalid ratchet run store');
 for (const run of ratchetRuns.runs) {
@@ -33,4 +41,4 @@ if (current.activeSlice) {
   invariant(governance.lifecycle.includes(current.activeSlice.state) || governance.exceptionStates.includes(current.activeSlice.state), `Invalid active slice state: ${current.activeSlice.state}`);
 }
 
-console.log(`PES v2 validation passed: ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${ratchetRuns.runs.length} ratchet run(s), mode=${config.mode}`);
+console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} event(s), ${ratchetRuns.runs.length} ratchet run(s), mode=${config.mode}`);
