@@ -1,22 +1,18 @@
 # PES v2 Implementation Plan
 
-## VS-01 — Foundation
+## VS-01 — Foundation ✅
 
-**Scope:** core types, graph invariants, complexity budget, bounded context builder, ratchet decision, tests and CI.
+Core types, graph invariants, complexity budget, bounded context builder, ratchet decision, tests and CI.
 
-**Exit:** `npm run preflight` passes and no agent can create an unsupported graph edge or exceed a budget without detection.
+## VS-02 — Ratchet Engine ✅
 
-## VS-02 — Ratchet Engine
-
-Add attempt records, evaluator contracts, artifact versions, repository/worktree adapters and reversible keep/revert semantics.
-
-**Exit:** a fixture task can run multiple attempts, keep only measured improvement, retain failed lineage and recover after interruption.
+Durable attempt records, evaluator contracts, versioned artifacts, reversible workspace adapters, keep/revert semantics, interruption recovery and failed lineage.
 
 ## VS-03 — Graph Memory
 
-Add append-oriented APIs for decisions, sources, claims, artifacts, runs, evaluations and relations plus correction/supersession semantics.
+**Implemented in this slice:** append-oriented graph writes, write provenance, optimistic revisions, atomic persistence, immutable correction/supersession, lineage reconstruction, accepted-artifact explanation and Ratchet publication.
 
-**Exit:** cross-session queries reconstruct why an accepted artifact exists and which failed attempts preceded it.
+**Exit:** cross-session queries reconstruct why an accepted artifact exists and which failed attempts preceded it; exact-head preflight passes.
 
 ## VS-04 — Context Builder
 
