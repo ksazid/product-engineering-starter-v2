@@ -4,7 +4,7 @@
     {
       "id": "OBJ-001",
       "type": "Objective",
-      "status": "active",
+      "status": "verified",
       "title": "Establish PES v2 foundation",
       "successCriteria": [
         "Repository validates",
@@ -12,7 +12,27 @@
         "Context retrieval is bounded",
         "Ratchet decisions are deterministic"
       ]
+    },
+    {
+      "id": "OBJ-002",
+      "type": "Objective",
+      "status": "active",
+      "title": "Implement native Ratchet Execution",
+      "successCriteria": [
+        "Multiple attempts keep only measured improvement",
+        "Failed attempts remain durable lineage",
+        "Interrupted attempts recover to a known checkpoint",
+        "Evaluator contracts require evidence",
+        "Repository and worktree execution are reversible"
+      ]
     }
   ],
-  "edges": []
+  "edges": [
+    {
+      "id": "EDGE-OBJ-002-OBJ-001",
+      "type": "DEPENDS_ON",
+      "from": "OBJ-002",
+      "to": "OBJ-001"
+    }
+  ]
 }
