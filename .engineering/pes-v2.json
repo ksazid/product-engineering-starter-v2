@@ -27,7 +27,10 @@
     "oneMotivatedChangePerIteration": true,
     "requireEvaluationBeforeKeep": true,
     "revertOnRegression": true,
-    "recordFailedAttempts": true
+    "recordFailedAttempts": true,
+    "maxAttemptsPerRun": 5,
+    "recoverInterruptedAttempts": true,
+    "requireVersionedArtifacts": true
   },
   "graph": {
     "enabled": true,
