@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "mode": "lite",
+  "authority": {
+    "humanApprovalRequired": ["scope", "policy", "certification", "release", "production-enable"],
+    "agentMaySelfApprove": false
+  },
+  "budgets": {
+    "maxModelCalls": 8,
+    "maxSubAgents": 0,
+    "maxConcurrentWorkers": 1,
+    "maxToolCalls": 40,
+    "maxTokens": 120000,
+    "maxFinancialCost": 10,
+    "maxWallClockMinutes": 45,
+    "maxRetries": 2,
+    "maxGraphWrites": 100,
+    "minEvidenceItems": 1
+  },
+  "context": {
+    "maxHops": 2,
+    "maxNodes": 40,
+    "includeStatuses": ["approved", "verified", "active", "superseded", "failed"],
+    "preferVerified": true
+  },
+  "ratchet": {
+    "oneMotivatedChangePerIteration": true,
+    "requireEvaluationBeforeKeep": true,
+    "revertOnRegression": true,
+    "recordFailedAttempts": true
+  },
+  "graph": {
+    "enabled": true,
+    "databaseRequired": false,
+    "storage": "versioned-json"
+  },
+  "multiAgent": {
+    "enabled": false,
+    "riskTriggeredOnly": true
+  }
+}

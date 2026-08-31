@@ -1,0 +1,14 @@
+{
+  "name": "product-engineering-starter-v2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --test",
+    "pes:validate": "node scripts/validate.mjs",
+    "preflight": "npm run pes:validate && npm test",
+    "context:build": "node scripts/context-builder.mjs",
+    "ratchet:evaluate": "node scripts/ratchet-evaluate.mjs"
+  }
+}
