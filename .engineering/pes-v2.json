@@ -2,7 +2,13 @@
   "version": 2,
   "mode": "lite",
   "authority": {
-    "humanApprovalRequired": ["scope", "policy", "certification", "release", "production-enable"],
+    "humanApprovalRequired": [
+      "scope",
+      "policy",
+      "certification",
+      "release",
+      "production-enable"
+    ],
     "agentMaySelfApprove": false
   },
   "budgets": {
@@ -20,7 +26,13 @@
   "context": {
     "maxHops": 2,
     "maxNodes": 40,
-    "includeStatuses": ["approved", "verified", "active", "superseded", "failed"],
+    "includeStatuses": [
+      "approved",
+      "verified",
+      "active",
+      "superseded",
+      "failed"
+    ],
     "preferVerified": true
   },
   "ratchet": {
@@ -35,7 +47,12 @@
   "graph": {
     "enabled": true,
     "databaseRequired": false,
-    "storage": "versioned-json"
+    "storage": "versioned-json",
+    "appendOnly": true,
+    "requireWriteProvenance": true,
+    "rejectConflictingIds": true,
+    "immutableSupersession": true,
+    "optimisticRevision": true
   },
   "multiAgent": {
     "enabled": false,

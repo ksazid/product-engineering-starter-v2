@@ -1,6 +1,6 @@
 # Product Engineering Starter v2 (PES v2)
 
-PES v2 is a **graph-aware product engineering governance system**. It keeps the strongest parts of PES v1—typed approvals, vertical slices, deterministic gates, exact-SHA certification, rollback and human release authority—and makes the execution loop, evidence lineage and persistent product memory first-class.
+PES v2 is a **graph-aware product engineering governance system**. It preserves PES governance—typed approvals, vertical slices, deterministic gates, exact-SHA certification, rollback and human release authority—while making execution, evidence lineage and durable product memory first-class.
 
 ## Core model
 
@@ -16,15 +16,17 @@ Bounded Context → Plan → Execute → Evaluate → Keep / Revise / Revert
                                        Human Approval
 ```
 
-PES v2 does **not** make graphs or multi-agent swarms mandatory. The default is the cheapest architecture that can safely satisfy the task.
+PES v2 does **not** make graph databases or multi-agent swarms mandatory. The default remains the cheapest architecture that can safely satisfy the task.
 
 ## What changes from PES v1
 
-- Loop Engineering becomes the native **Ratchet Execution** mechanism instead of a separate top-level concept.
-- Product decisions, artifacts, evidence, evaluations and agent runs become durable graph-addressable state.
-- Context is built from a bounded relevant subgraph instead of replaying whole histories.
-- Failed attempts remain useful lineage and are not silently forgotten.
-- Cost, token, concurrency, retry and wall-clock budgets are explicit run contracts.
+- Loop Engineering is absorbed as native **Ratchet Execution**.
+- Decisions, artifacts, evidence, evaluations and agent runs become durable graph-addressable state.
+- Graph writes are append-oriented and provenance-bearing rather than silent in-place rewrites.
+- Corrections create immutable supersession chains.
+- Context is built from bounded relevant state instead of replaying whole histories.
+- Failed attempts remain useful lineage.
+- Cost, token, concurrency, retry, wall-clock and graph-write budgets are explicit.
 - Multi-agent execution remains risk-triggered and optional.
 - Human authority over scope, policy, certification, release and production enablement is unchanged.
 
@@ -44,30 +46,34 @@ Requires Node.js 24+.
 npm test
 npm run preflight
 npm run pes:validate
+npm run graph:validate
 ```
 
-Build bounded context around one or more graph node IDs:
+Build bounded context:
 
 ```bash
-npm run context:build -- OBJ-002
+npm run context:build -- OBJ-003
 ```
 
-Run a deterministic ratchet fixture:
+Inspect durable graph memory:
 
 ```bash
-npm run ratchet:fixture
+npm run graph:memory -- current OBJ-003
+npm run graph:memory -- lineage OBJ-003
+npm run graph:memory -- provenance OBJ-003
 ```
 
-Evaluate one metric directly:
+Publish a finalized Ratchet attempt:
 
 ```bash
-npm run ratchet:evaluate -- 0.72 0.78 higher
+npm run graph:memory -- publish-attempt RUN-1 ATT-2
 ```
 
 ## Current implementation status
 
-- **VS-01 Foundation — complete:** domain model, graph invariants, budgets, context builder and CI.
-- **VS-02 Ratchet Engine — implemented:** durable attempt records, evaluator contracts, versioned artifacts, keep/revert semantics, interruption recovery, atomic run storage and reversible file/worktree adapters.
-- **VS-03 Graph Memory — next:** append-oriented graph APIs, corrections/supersession and cross-session lineage queries.
+- **VS-01 Foundation** ✅ — core domain model, budgets, graph invariants, bounded context and CI.
+- **VS-02 Ratchet Engine** ✅ — durable attempts, evaluator contracts, artifact versions, reversible execution and recovery.
+- **VS-03 Graph Memory** — append-oriented state, provenance, correction/supersession, cross-session lineage queries and Ratchet publication.
+- **VS-04+** — context ranking/hashing, PES gate integration, certification bundles and measured multi-agent execution.
 
-See `docs/PES-V2-DESIGN.md`, `docs/MIGRATION-FROM-V1.md` and `docs/VS-02-RATCHET-ENGINE.md`.
+See `docs/PES-V2-DESIGN.md`, `docs/VS-02-RATCHET-ENGINE.md`, `docs/VS-03-GRAPH-MEMORY.md` and `docs/MIGRATION-FROM-V1.md`.
