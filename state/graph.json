@@ -1,5 +1,7 @@
 {
-  "version": 1,
+  "schemaVersion": 1,
+  "version": 2,
+  "revision": 2,
   "nodes": [
     {
       "id": "OBJ-001",
@@ -11,12 +13,20 @@
         "Graph invariants are enforced",
         "Context retrieval is bounded",
         "Ratchet decisions are deterministic"
-      ]
+      ],
+      "memoryProvenance": {
+        "eventId": "GM-000001",
+        "revision": 1,
+        "actorId": "pes-v2-migration",
+        "runId": null,
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:00.000Z"
+      }
     },
     {
       "id": "OBJ-002",
       "type": "Objective",
-      "status": "active",
+      "status": "verified",
       "title": "Implement native Ratchet Execution",
       "successCriteria": [
         "Multiple attempts keep only measured improvement",
@@ -24,7 +34,36 @@
         "Interrupted attempts recover to a known checkpoint",
         "Evaluator contracts require evidence",
         "Repository and worktree execution are reversible"
-      ]
+      ],
+      "memoryProvenance": {
+        "eventId": "GM-000001",
+        "revision": 1,
+        "actorId": "pes-v2-migration",
+        "runId": null,
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "OBJ-003",
+      "type": "Objective",
+      "status": "active",
+      "title": "Implement durable Graph Memory",
+      "successCriteria": [
+        "Graph writes are append-oriented and provenance-bearing",
+        "Conflicting id rewrites are rejected",
+        "Corrections and supersessions preserve old state",
+        "Cross-session queries explain accepted artifacts and failed attempts",
+        "Graph persistence detects stale revisions"
+      ],
+      "memoryProvenance": {
+        "eventId": "GM-000002",
+        "revision": 2,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-03",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:01.000Z"
+      }
     }
   ],
   "edges": [
@@ -32,7 +71,64 @@
       "id": "EDGE-OBJ-002-OBJ-001",
       "type": "DEPENDS_ON",
       "from": "OBJ-002",
-      "to": "OBJ-001"
+      "to": "OBJ-001",
+      "memoryProvenance": {
+        "eventId": "GM-000001",
+        "revision": 1,
+        "actorId": "pes-v2-migration",
+        "runId": null,
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "EDGE-OBJ-003-OBJ-002",
+      "type": "DEPENDS_ON",
+      "from": "OBJ-003",
+      "to": "OBJ-002",
+      "memoryProvenance": {
+        "eventId": "GM-000002",
+        "revision": 2,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-03",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:01.000Z"
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "GM-000001",
+      "revision": 1,
+      "operation": "migration-import",
+      "actorId": "pes-v2-migration",
+      "runId": null,
+      "reason": "Import pre-VS-03 graph state without changing semantic content",
+      "sourceIds": [],
+      "addedNodeIds": [
+        "OBJ-001",
+        "OBJ-002"
+      ],
+      "addedEdgeIds": [
+        "EDGE-OBJ-002-OBJ-001"
+      ],
+      "recordedAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "GM-000002",
+      "revision": 2,
+      "operation": "append",
+      "actorId": "pes-v2-governance",
+      "runId": "VS-03",
+      "reason": "Activate VS-03 Graph Memory objective",
+      "sourceIds": [],
+      "addedNodeIds": [
+        "OBJ-003"
+      ],
+      "addedEdgeIds": [
+        "EDGE-OBJ-003-OBJ-002"
+      ],
+      "recordedAt": "2026-09-01T00:00:01.000Z"
     }
   ]
 }
