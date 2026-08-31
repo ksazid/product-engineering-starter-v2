@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "OBJ-001",
+      "type": "Objective",
+      "status": "active",
+      "title": "Establish PES v2 foundation",
+      "successCriteria": [
+        "Repository validates",
+        "Graph invariants are enforced",
+        "Context retrieval is bounded",
+        "Ratchet decisions are deterministic"
+      ]
+    }
+  ],
+  "edges": []
+}
