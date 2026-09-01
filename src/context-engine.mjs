@@ -212,9 +212,11 @@ export function buildRankedContext(input, seedIds, policy) {
   const ordered = ranked.sort((a, b) => {
     const aSeed = seedSet.has(a.node.id) ? 1 : 0;
     const bSeed = seedSet.has(b.node.id) ? 1 : 0;
-    const aForced = forcedContradictions.has(a.node.id) ? 1 : 0;
-    const bForced = forcedContradictions.has(b.node.id) ? 1 : 0;
-    return bSeed - aSeed || bForced - aForced || b.score - a.score || a.hop - b.hop || a.node.id.localeCompare(b.node.id);
+    const aContradictionBonus = forcedContradictions.has(a.node.id) ? 15 : 0;
+    const bContradictionBonus = forcedContradictions.has(b.node.id) ? 15 : 0;
+    return bSeed - aSeed ||
+      ((b.score + bContradictionBonus) - (a.score + aContradictionBonus)) ||
+      a.hop - b.hop || a.node.id.localeCompare(b.node.id);
   });
 
   let selected = ordered.slice(0, policy.maxNodes).map(item => ({ ...item, node: clone(item.node) }));
