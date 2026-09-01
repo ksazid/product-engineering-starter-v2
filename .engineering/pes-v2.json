@@ -77,7 +77,12 @@
     "immutableBundles": true
   },
   "multiAgent": {
+    "available": true,
     "enabled": false,
+    "defaultEnabled": false,
+    "activationRequiresBenchmark": true,
+    "policyFile": "delivery/multi-agent-policy.json",
+    "benchmarkStoreFile": "state/execution-benchmarks.json",
     "riskTriggeredOnly": true
   }
 }
