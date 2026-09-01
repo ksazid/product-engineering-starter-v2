@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { validateBudget, invariant } from '../src/core.mjs';
+import { certificationBundleHash, validateCertificationPolicy, verifyCertifiedBundle } from '../src/certification-engine.mjs';
 import { validateContextPolicy } from '../src/context-engine.mjs';
 import { validateGatePolicy } from '../src/gate-engine.mjs';
 import { validateGraphMemoryState } from '../src/graph-memory.mjs';
@@ -9,6 +10,8 @@ const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
 const config = read('.engineering/pes-v2.json');
 const governance = read('delivery/governance.json');
 const gates = read('delivery/gates.json');
+const certificationPolicy = read('delivery/certification-policy.json');
+const certifications = read('state/certifications.json');
 const current = read('delivery/current-slice.json');
 const graph = read('state/graph.json');
 const ratchetRuns = read('state/ratchet-runs.json');
@@ -38,6 +41,36 @@ invariant(config.gates.requireLinkedEvidence === true, 'PES v2 gates require lin
 invariant(config.gates.blockStaleContext === true, 'PES v2 gates must block stale context');
 validateGatePolicy(gates, governance);
 
+invariant(config.certification?.enabled === true, 'PES v2 exact-SHA certification must be enabled');
+invariant(config.certification.policyFile === 'delivery/certification-policy.json', 'Certification policy file must be delivery/certification-policy.json');
+invariant(config.certification.storeFile === 'state/certifications.json', 'Certification store file must be state/certifications.json');
+invariant(config.certification.exactShaRequired === true, 'Certification must require exact SHA');
+invariant(config.certification.candidateHashRequired === true, 'Certification must require candidate hash binding');
+invariant(config.certification.humanFinalApprovalRequired === true, 'Certification must require human final approval');
+invariant(config.certification.immutableBundles === true, 'Certification bundles must be immutable');
+validateCertificationPolicy(certificationPolicy, governance);
+
+invariant(certifications.schemaVersion === 1 && Array.isArray(certifications.records), 'Invalid certification store');
+const certificationIds = new Set();
+const certifiedSliceShas = new Set();
+for (const bundle of certifications.records) {
+  invariant(bundle?.status === 'certified', 'Certification store may contain only certified bundles');
+  invariant(/^[0-9a-f]{40}$/i.test(bundle.commitSha ?? ''), `Invalid certification SHA: ${bundle.bundleId ?? 'unknown'}`);
+  invariant(!certificationIds.has(bundle.bundleId), `Duplicate certification bundle id: ${bundle.bundleId}`);
+  certificationIds.add(bundle.bundleId);
+  const key = `${bundle.sliceId}:${bundle.commitSha}`;
+  invariant(!certifiedSliceShas.has(key), `Duplicate certified slice SHA: ${key}`);
+  certifiedSliceShas.add(key);
+  invariant(bundle.certifiedHash === certificationBundleHash(bundle), `Certification bundle hash mismatch: ${bundle.bundleId}`);
+  const verification = verifyCertifiedBundle(bundle, {
+    graph,
+    governance,
+    policy: certificationPolicy,
+    authority: config.authority
+  });
+  invariant(verification.ok, `Stored certification ${bundle.bundleId} failed verification: ${verification.blockers.map(item => item.code).join(', ')}`);
+}
+
 invariant(ratchetRuns.schemaVersion === 1 && Array.isArray(ratchetRuns.runs), 'Invalid ratchet run store');
 for (const run of ratchetRuns.runs) {
   invariant(typeof run.id === 'string' && run.id, 'Stored ratchet run requires id');
@@ -58,4 +91,4 @@ if (current.activeSlice) {
   invariant(governance.implementationPermissions.includes(current.activeSlice.implementationPermission), `Invalid implementation permission: ${current.activeSlice.implementationPermission}`);
 }
 
-console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} event(s), ${ratchetRuns.runs.length} ratchet run(s), context<=${config.context.maxTokens} tokens, gates=v${gates.version}, mode=${config.mode}`);
+console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} graph event(s), ${ratchetRuns.runs.length} ratchet run(s), ${certifications.records.length} certification(s), context<=${config.context.maxTokens} tokens, gates=v${gates.version}, certification=v${certificationPolicy.version}, mode=${config.mode}`);

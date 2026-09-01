@@ -8,29 +8,23 @@ Core types, graph invariants, complexity budget, bounded context builder, ratche
 
 Durable attempt records, evaluator contracts, versioned artifacts, reversible workspace adapters, keep/revert semantics, interruption recovery and failed lineage.
 
-## VS-03 — Graph Memory
+## VS-03 — Graph Memory ✅
 
-**Implemented in this slice:** append-oriented graph writes, write provenance, optimistic revisions, atomic persistence, immutable correction/supersession, lineage reconstruction, accepted-artifact explanation and Ratchet publication.
+Append-oriented graph writes, write provenance, optimistic revisions, atomic persistence, immutable correction/supersession, lineage reconstruction, accepted-artifact explanation and Ratchet publication.
 
-**Exit:** cross-session queries reconstruct why an accepted artifact exists and which failed attempts preceded it; exact-head preflight passes.
+## VS-04 — Context Builder ✅
 
-## VS-04 — Context Builder
+Relevance ranking, recency, verified-state preference, contradiction inclusion, token-aware serialization, supersession resolution and context hashing.
 
-Add relevance ranking, recency, verified-state preference, contradiction inclusion, token-aware serialization and context hashing.
+## VS-05 — PES Gate Integration ✅
 
-**Exit:** workers receive sufficient relevant state within declared context budgets and unchanged context can be detected.
-
-## VS-05 — PES Gate Integration
-
-Connect graph evidence to typed approvals, lifecycle transitions, risk controls, protected paths and delivery-graph triggers.
-
-**Exit:** governance blocks unsafe transitions using both canonical delivery state and linked evidence.
+Graph-aware typed approvals, lifecycle transitions, implementation permissions, risk controls, protected paths, linked evidence, context freshness and delivery-graph triggers.
 
 ## VS-06 — Certification
 
-Create exact-SHA certification bundles linking objective, approved scope, artifacts, test/security evidence, evaluations and unresolved risk.
+**Implemented in this slice:** exact-SHA certification candidates, self-contained context/gate snapshots, graph-linked artifact/evidence/evaluation traces, risk-sensitive evidence floors, human hash-bound certification approval, immutable certification hashes and append-only storage.
 
-**Exit:** a certified SHA has a machine-verifiable trace from objective to evidence and approval.
+**Exit:** a certified SHA has a machine-verifiable trace from objective to linked evidence and human approval, remains verifiable after later append-only graph revisions and exact-head preflight passes.
 
 ## VS-07 — Measured Multi-Agent Execution
 
