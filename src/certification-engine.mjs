@@ -66,18 +66,19 @@ export function buildCertificationCandidate({
   const graphState = normalizeGraphMemoryState(graph);
   validateGraphMemoryState(graphState);
 
+  const contextSnapshot = stripFunctions(context);
+  const gateSnapshot = stripFunctions(gateResult);
   const blockers = validateCandidateInputs({
     slice,
     commitSha,
     graphState,
-    context,
-    gateResult,
+    context: contextSnapshot,
+    gateResult: gateSnapshot,
     approvals,
     artifactIds,
     evidenceIds,
     evaluationIds,
     unresolvedRisks,
-    governance,
     policy,
     authority
   });
@@ -92,8 +93,10 @@ export function buildCertificationCandidate({
     riskLevel: slice.riskLevel,
     commitSha: commitSha.toLowerCase(),
     graphRevision: graphState.revision,
-    contextHash: context.contextHash,
-    gateDecisionHash: hash(stripFunctions(gateResult)),
+    contextHash: contextSnapshot.contextHash,
+    contextSnapshot,
+    gateDecisionHash: hash(gateSnapshot),
+    gateSnapshot,
     approvals: clone(approvals),
     artifactIds: unique(artifactIds),
     evidenceIds: unique(evidenceIds),
@@ -113,12 +116,13 @@ export function buildCertificationCandidate({
 
 export function verifyCertificationCandidate(candidate, {
   graph,
-  context,
-  gateResult,
+  context = candidate?.contextSnapshot ?? null,
+  gateResult = candidate?.gateSnapshot ?? null,
   governance,
   policy,
   authority,
-  currentCommitSha = null
+  currentCommitSha = null,
+  allowHistoricalGraphRevision = false
 }) {
   validateCertificationPolicy(policy, governance);
   const blockers = [];
@@ -132,13 +136,9 @@ export function verifyCertificationCandidate(candidate, {
   const graphState = normalizeGraphMemoryState(graph);
   try { validateGraphMemoryState(graphState); } catch (error) { blockers.push({ code: 'invalid-graph-state', message: error.message }); }
 
-  const pseudoSlice = {
-    id: candidate.sliceId,
-    objectiveId: candidate.objectiveId,
-    riskLevel: candidate.riskLevel
-  };
+  const effectivePolicy = allowHistoricalGraphRevision ? { ...policy, requireCurrentGraphRevision: false } : policy;
   blockers.push(...validateCandidateInputs({
-    slice: pseudoSlice,
+    slice: { id: candidate.sliceId, objectiveId: candidate.objectiveId, riskLevel: candidate.riskLevel },
     commitSha: candidate.commitSha,
     graphState,
     context,
@@ -148,14 +148,20 @@ export function verifyCertificationCandidate(candidate, {
     evidenceIds: candidate.evidenceIds,
     evaluationIds: candidate.evaluationIds,
     unresolvedRisks: candidate.unresolvedRisks,
-    governance,
-    policy,
+    policy: effectivePolicy,
     authority
   }));
 
-  if (candidate.graphRevision !== graphState.revision) blockers.push({ code: 'candidate-graph-revision-mismatch', message: `Candidate records graph revision ${candidate.graphRevision}; current=${graphState.revision}` });
+  if (allowHistoricalGraphRevision) {
+    if (graphState.revision < candidate.graphRevision) blockers.push({ code: 'graph-history-missing', message: `Current graph revision ${graphState.revision} predates certified revision ${candidate.graphRevision}` });
+  } else if (candidate.graphRevision !== graphState.revision) {
+    blockers.push({ code: 'candidate-graph-revision-mismatch', message: `Candidate records graph revision ${candidate.graphRevision}; current=${graphState.revision}` });
+  }
+
   if (candidate.contextHash !== context?.contextHash) blockers.push({ code: 'candidate-context-hash-mismatch', message: 'Candidate context hash no longer matches supplied context' });
+  if (hash(stripFunctions(candidate.contextSnapshot)) !== hash(stripFunctions(context))) blockers.push({ code: 'candidate-context-snapshot-mismatch', message: 'Candidate context snapshot no longer matches supplied context' });
   if (candidate.gateDecisionHash !== hash(stripFunctions(gateResult))) blockers.push({ code: 'candidate-gate-hash-mismatch', message: 'Candidate gate decision hash no longer matches supplied gate result' });
+  if (hash(candidate.gateSnapshot) !== hash(stripFunctions(gateResult))) blockers.push({ code: 'candidate-gate-snapshot-mismatch', message: 'Candidate gate snapshot no longer matches supplied gate result' });
 
   const expectedTrace = buildTraceSummary(graphState, candidate.objectiveId, {
     artifactIds: candidate.artifactIds,
@@ -163,15 +169,15 @@ export function verifyCertificationCandidate(candidate, {
     evaluationIds: candidate.evaluationIds,
     maxHops: policy.maxTraceHops
   });
-  if (hash(expectedTrace) !== hash(candidate.trace)) blockers.push({ code: 'candidate-trace-mismatch', message: 'Candidate graph trace no longer matches current graph' });
+  if (hash(expectedTrace) !== hash(candidate.trace)) blockers.push({ code: 'candidate-trace-mismatch', message: 'Candidate graph trace no longer matches immutable graph objects' });
 
   return { ok: blockers.length === 0, blockers };
 }
 
 export function finalizeCertification(candidate, certificationApproval, {
   graph,
-  context,
-  gateResult,
+  context = candidate?.contextSnapshot ?? null,
+  gateResult = candidate?.gateSnapshot ?? null,
   governance,
   policy,
   authority,
@@ -185,7 +191,8 @@ export function finalizeCertification(candidate, certificationApproval, {
     governance,
     policy,
     authority,
-    currentCommitSha
+    currentCommitSha,
+    allowHistoricalGraphRevision: false
   });
   invariant(verification.ok, `Cannot finalize certification: ${verification.blockers.map(item => item.code).join(', ')}`);
   validateFinalApproval(certificationApproval, candidate, policy);
@@ -208,7 +215,12 @@ export function verifyCertifiedBundle(bundle, inputs) {
   delete candidate.certifiedHash;
   candidate.status = 'candidate';
 
-  const verification = verifyCertificationCandidate(candidate, inputs);
+  const verification = verifyCertificationCandidate(candidate, {
+    ...inputs,
+    context: inputs.context ?? candidate.contextSnapshot,
+    gateResult: inputs.gateResult ?? candidate.gateSnapshot,
+    allowHistoricalGraphRevision: true
+  });
   const blockers = [...verification.blockers];
   try { validateFinalApproval(bundle.certificationApproval, candidate, inputs.policy); }
   catch (error) { blockers.push({ code: 'invalid-final-certification-approval', message: error.message }); }
@@ -264,12 +276,14 @@ export class JsonCertificationStore {
   withLock(fn) {
     fs.mkdirSync(path.dirname(this.lockPath), { recursive: true });
     let fd;
+    let acquired = false;
     try {
       fd = fs.openSync(this.lockPath, 'wx');
+      acquired = true;
       return fn();
     } finally {
       if (fd !== undefined) fs.closeSync(fd);
-      if (fs.existsSync(this.lockPath)) fs.unlinkSync(this.lockPath);
+      if (acquired && fs.existsSync(this.lockPath)) fs.unlinkSync(this.lockPath);
     }
   }
 }
@@ -308,24 +322,18 @@ function validateCandidateInputs({
   blockers.push(...validatePreCertificationApprovals(approvals, slice.id, policy, authority));
 
   const artifactCheck = validateLinkedNodes(graphState, slice.objectiveId, unique(artifactIds), {
-    allowedTypes: new Set(['Artifact']),
-    acceptedStatuses: new Set(policy.acceptedGraphStatuses),
-    maxHops: policy.maxTraceHops
+    allowedTypes: new Set(['Artifact']), acceptedStatuses: new Set(policy.acceptedGraphStatuses), maxHops: policy.maxTraceHops
   });
   if (artifactCheck.accepted.length < policy.minimumArtifacts) blockers.push({ code: 'insufficient-artifacts', message: `Certification requires ${policy.minimumArtifacts} linked artifact(s); found ${artifactCheck.accepted.length}`, details: artifactCheck });
 
   const evaluationCheck = validateLinkedNodes(graphState, slice.objectiveId, unique(evaluationIds), {
-    allowedTypes: new Set(['Evaluation']),
-    acceptedStatuses: new Set(policy.acceptedGraphStatuses),
-    maxHops: policy.maxTraceHops
+    allowedTypes: new Set(['Evaluation']), acceptedStatuses: new Set(policy.acceptedGraphStatuses), maxHops: policy.maxTraceHops
   });
   if (evaluationCheck.accepted.length < policy.minimumEvaluations) blockers.push({ code: 'insufficient-evaluations', message: `Certification requires ${policy.minimumEvaluations} linked evaluation(s); found ${evaluationCheck.accepted.length}`, details: evaluationCheck });
 
   const evidenceFloor = policy.minimumEvidenceByRisk[slice.riskLevel] ?? 0;
   const evidenceCheck = validateLinkedNodes(graphState, slice.objectiveId, unique(evidenceIds), {
-    allowedTypes: new Set(['Evidence', 'Source', 'Metric', 'Claim']),
-    acceptedStatuses: new Set(policy.acceptedGraphStatuses),
-    maxHops: policy.maxTraceHops
+    allowedTypes: new Set(['Evidence', 'Source', 'Metric', 'Claim']), acceptedStatuses: new Set(policy.acceptedGraphStatuses), maxHops: policy.maxTraceHops
   });
   if (evidenceCheck.accepted.length < evidenceFloor) blockers.push({ code: 'insufficient-certification-evidence', message: `Certification requires ${evidenceFloor} linked evidence item(s); found ${evidenceCheck.accepted.length}`, details: evidenceCheck });
 
@@ -385,8 +393,19 @@ function validateLinkedNodes(state, objectiveId, ids, { allowedTypes, acceptedSt
 }
 
 function buildTraceSummary(state, objectiveId, { artifactIds, evidenceIds, evaluationIds, maxHops }) {
+  const byId = new Map(state.nodes.map(node => [node.id, node]));
   const ids = [...unique(artifactIds), ...unique(evidenceIds), ...unique(evaluationIds)];
-  return ids.map(id => ({ id, distanceFromObjective: graphDistance(state, objectiveId, id, maxHops) })).sort((a, b) => a.id.localeCompare(b.id));
+  return ids.map(id => {
+    const node = byId.get(id);
+    return {
+      id,
+      type: node?.type ?? null,
+      status: node?.status ?? null,
+      nodeHash: node ? hash(node) : null,
+      memoryEventId: node?.memoryProvenance?.eventId ?? null,
+      distanceFromObjective: graphDistance(state, objectiveId, id, maxHops)
+    };
+  }).sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function graphDistance(state, fromId, toId, maxHops) {
