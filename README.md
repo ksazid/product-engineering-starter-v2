@@ -11,7 +11,9 @@ Ranked Bounded Context → Plan → Execute → Evaluate → Keep / Revise / Rev
           ↑                                      ↓
           └──────── Product Graph Memory ← Artifacts / Evidence / Lineage
                                                  ↓
-                                          PES Certification
+                                      Graph-aware PES Gates
+                                                 ↓
+                                          Certification
                                                  ↓
                                            Human Approval
 ```
@@ -28,6 +30,7 @@ PES v2 does **not** make graph databases or multi-agent swarms mandatory. The de
 - Verified/recent state is preferred while material contradictions remain visible.
 - Superseded seeds resolve to current state before retrieval.
 - Context packs are token-bounded and content-hashed so unchanged work can be detected.
+- Governance gates now verify lifecycle order, approvals, permissions, linked evidence, context freshness, contradictions, protected paths and delivery-graph readiness.
 - Failed attempts remain useful lineage.
 - Cost, token, concurrency, retry, wall-clock and graph-write budgets are explicit.
 - Multi-agent execution remains risk-triggered and optional.
@@ -55,21 +58,27 @@ npm run graph:validate
 Build ranked bounded context:
 
 ```bash
-npm run context:build -- OBJ-004
+npm run context:build -- OBJ-005
 ```
 
 Check whether context changed from a prior pack:
 
 ```bash
-npm run context:build -- OBJ-004 --prior-hash <sha256>
+npm run context:build -- OBJ-005 --prior-hash <sha256>
+```
+
+Evaluate a PES lifecycle transition:
+
+```bash
+npm run gate:evaluate -- testing path/to/gate-input.json
 ```
 
 Inspect durable graph memory:
 
 ```bash
-npm run graph:memory -- current OBJ-003
-npm run graph:memory -- lineage OBJ-003
-npm run graph:memory -- provenance OBJ-003
+npm run graph:memory -- current OBJ-004
+npm run graph:memory -- lineage OBJ-005
+npm run graph:memory -- provenance OBJ-005
 ```
 
 Publish a finalized Ratchet attempt:
@@ -83,7 +92,8 @@ npm run graph:memory -- publish-attempt RUN-1 ATT-2
 - **VS-01 Foundation** ✅ — core domain model, budgets, graph invariants and CI.
 - **VS-02 Ratchet Engine** ✅ — durable attempts, evaluator contracts, artifact versions, reversible execution and recovery.
 - **VS-03 Graph Memory** ✅ — append-oriented state, provenance, correction/supersession, cross-session lineage queries and Ratchet publication.
-- **VS-04 Context Builder** — relevance ranking, recency, verified-state preference, contradiction inclusion, token-aware serialization and context hashing.
-- **VS-05+** — PES gate integration, certification bundles and measured multi-agent execution.
+- **VS-04 Context Builder** ✅ — relevance ranking, recency, verified-state preference, contradiction inclusion, token-aware serialization and context hashing.
+- **VS-05 PES Gate Integration** — deterministic lifecycle/approval/evidence/risk/protected-path gates and delivery-graph triggers.
+- **VS-06+** — exact-SHA certification bundles and measured multi-agent execution.
 
-See `docs/PES-V2-DESIGN.md`, `docs/VS-02-RATCHET-ENGINE.md`, `docs/VS-03-GRAPH-MEMORY.md`, `docs/VS-04-CONTEXT-BUILDER.md` and `docs/MIGRATION-FROM-V1.md`.
+See `docs/PES-V2-DESIGN.md`, `docs/VS-02-RATCHET-ENGINE.md`, `docs/VS-03-GRAPH-MEMORY.md`, `docs/VS-04-CONTEXT-BUILDER.md`, `docs/VS-05-PES-GATE-INTEGRATION.md` and `docs/MIGRATION-FROM-V1.md`.
