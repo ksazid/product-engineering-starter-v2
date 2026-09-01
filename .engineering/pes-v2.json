@@ -67,6 +67,15 @@
     "blockRelevantContradictionsAtCertification": true,
     "protectedPathsTriggerDeliveryGraph": true
   },
+  "certification": {
+    "enabled": true,
+    "policyFile": "delivery/certification-policy.json",
+    "storeFile": "state/certifications.json",
+    "exactShaRequired": true,
+    "candidateHashRequired": true,
+    "humanFinalApprovalRequired": true,
+    "immutableBundles": true
+  },
   "multiAgent": {
     "enabled": false,
     "riskTriggeredOnly": true
