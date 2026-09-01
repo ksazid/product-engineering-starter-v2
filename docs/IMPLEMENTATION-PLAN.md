@@ -20,14 +20,30 @@ Relevance ranking, recency, verified-state preference, contradiction inclusion, 
 
 Graph-aware typed approvals, lifecycle transitions, implementation permissions, risk controls, protected paths, linked evidence, context freshness and delivery-graph triggers.
 
-## VS-06 — Certification
+## VS-06 — Certification ✅
 
-**Implemented in this slice:** exact-SHA certification candidates, self-contained context/gate snapshots, graph-linked artifact/evidence/evaluation traces, risk-sensitive evidence floors, human hash-bound certification approval, immutable certification hashes and append-only storage.
-
-**Exit:** a certified SHA has a machine-verifiable trace from objective to linked evidence and human approval, remains verifiable after later append-only graph revisions and exact-head preflight passes.
+Exact-SHA certification candidates, self-contained context/gate snapshots, graph-linked artifact/evidence/evaluation traces, risk-sensitive evidence floors, human hash-bound certification approval, immutable certification hashes and append-only storage.
 
 ## VS-07 — Measured Multi-Agent Execution
 
-Add optional planner/specialist/reviewer execution only for independent work with isolation and a declared reducer.
+**Implemented in this slice:** deterministic dependency waves, mandatory reducer and worker isolation contracts, concurrent-write conflict serialization, plan resource estimates, risk eligibility, repeated single-vs-multi benchmarks, quality/failure/cost guardrails, budget vetoes and append-only benchmark history.
 
-**Exit:** benchmarks show quality, coverage or wall-clock benefit over the single-worker baseline within cost budgets.
+**Activation posture:** multi-agent execution remains disabled in default Lite mode. A benchmark may show that a plan is activation-ready, but authorization still requires explicit enablement and sufficient PES budgets.
+
+**Exit:** exact-head preflight passes and tests prove that multi-agent execution cannot be justified by speed alone when quality regresses, cannot exceed PES budgets, cannot run high-risk work by default and cannot become authorized merely because the capability exists.
+
+## Core roadmap completion
+
+With VS-07 merged, the PES v2 core implementation roadmap is complete:
+
+```text
+Governance
+→ Ratchet Execution
+→ Durable Graph Memory
+→ Ranked Bounded Context
+→ Graph-aware Gates
+→ Exact-SHA Certification
+→ Optional Measured Multi-Agent Optimization
+```
+
+The next phase is **outcome validation**, not automatic architectural expansion: run PES v2 against real product-development workloads and compare accepted-output quality, rework, regression rate, delivery latency and cost against the PES v1 / single-worker baseline.
