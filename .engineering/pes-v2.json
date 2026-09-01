@@ -57,6 +57,16 @@
     "immutableSupersession": true,
     "optimisticRevision": true
   },
+  "gates": {
+    "enabled": true,
+    "policyFile": "delivery/gates.json",
+    "enforceLifecycleOrder": true,
+    "requireBoundedContext": true,
+    "requireLinkedEvidence": true,
+    "blockStaleContext": true,
+    "blockRelevantContradictionsAtCertification": true,
+    "protectedPathsTriggerDeliveryGraph": true
+  },
   "multiAgent": {
     "enabled": false,
     "riskTriggeredOnly": true
