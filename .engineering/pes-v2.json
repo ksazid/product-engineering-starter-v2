@@ -26,6 +26,7 @@
   "context": {
     "maxHops": 2,
     "maxNodes": 40,
+    "maxTokens": 12000,
     "includeStatuses": [
       "approved",
       "verified",
@@ -33,7 +34,9 @@
       "superseded",
       "failed"
     ],
-    "preferVerified": true
+    "preferVerified": true,
+    "includeContradictions": true,
+    "resolveSuperseded": true
   },
   "ratchet": {
     "oneMotivatedChangePerIteration": true,
