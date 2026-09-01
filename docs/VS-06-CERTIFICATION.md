@@ -27,9 +27,9 @@ Candidate hash
   ↓
 Human certification approval references exact SHA + candidate hash
   ↓
-Finalize immutable certified bundle
+Finalize against the current exact SHA
   ↓
-Certified bundle hash
+Immutable certified bundle + certified hash
   ↓
 Append to certification store
 ```
@@ -67,7 +67,7 @@ Final certification requires an approval record with:
 - matching candidate hash;
 - approval timestamp.
 
-An agent cannot self-certify or silently transfer an approval to a different SHA.
+Finalization also receives the current exact commit SHA and refuses to certify when it differs from the candidate SHA. An agent cannot self-certify or silently transfer an approval to a different SHA.
 
 ## Evidence rules
 
@@ -110,16 +110,16 @@ Build a candidate from an input JSON file containing slice, exact `commitSha`, c
 npm run cert -- candidate certification-input.json
 ```
 
-Finalize after human approval:
+Finalize after human approval, explicitly passing the exact current commit SHA:
 
 ```bash
-npm run cert -- finalize candidate.json approval.json
+npm run cert -- finalize candidate.json approval.json <exact-commit-sha>
 ```
 
-Verify a certified bundle:
+Verify a certified bundle, optionally asserting that it matches a supplied current SHA:
 
 ```bash
-npm run cert -- verify certified.json
+npm run cert -- verify certified.json [exact-commit-sha]
 ```
 
 Persist a verified certified bundle:
