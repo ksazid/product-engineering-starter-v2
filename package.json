@@ -1,6 +1,6 @@
 {
   "name": "product-engineering-starter-v2",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,6 +14,7 @@
     "ratchet:evaluate": "node scripts/ratchet-evaluate.mjs",
     "ratchet:fixture": "node scripts/ratchet-fixture.mjs",
     "graph:memory": "node scripts/graph-memory.mjs",
-    "graph:validate": "node scripts/graph-memory.mjs validate"
+    "graph:validate": "node scripts/graph-memory.mjs validate",
+    "gate:evaluate": "node scripts/gate-evaluate.mjs"
   }
 }
