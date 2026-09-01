@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "pilotId": "KAIRO-FLOW-1A-PILOT-001",
+  "mode": "shadow",
+  "product": "Kairo",
+  "source": {
+    "repository": "ksazid/kairo",
+    "pullRequest": 258,
+    "baseSha": "82263575ad3e18d2751f8c336c1a4bf273ed2970",
+    "headSha": "8b78889fd66f8f93b1f3b5f91faf1afed39e305f",
+    "commits": 5,
+    "changedFiles": 3,
+    "additions": 295,
+    "deletions": 31,
+    "paths": [
+      "packages/domain/src/brand-brain-bootstrap.ts",
+      "packages/domain/src/evidence-sanitization-gate.test.ts",
+      "packages/domain/src/evidence-sanitization-gate.ts"
+    ]
+  },
+  "objectiveId": "OBJ-KAIRO-FLOW-1A",
+  "slice": {
+    "id": "KAIRO-FLOW-1A",
+    "riskLevel": "medium",
+    "title": "Evidence Sanitization Gate",
+    "productionMutation": false,
+    "uiChange": false
+  },
+  "baseline": {
+    "governance": "Kairo current PES workflow",
+    "checks": [
+      { "name": "CI", "runId": 33453091575, "conclusion": "success" },
+      { "name": "Product intake", "runId": 33453091565, "conclusion": "success" },
+      { "name": "Security baseline", "runId": 33453091562, "conclusion": "success" }
+    ],
+    "observableStrengths": [
+      "exact pull-request head is known",
+      "CI, Product intake and Security baseline passed on that head",
+      "scope is narrowly contained to three domain files",
+      "PR declares no UI, production-source or scheduler changes"
+    ],
+    "observableGaps": [
+      "no machine-verifiable bounded-context hash is attached to the PR metadata",
+      "no graph-linked artifact/evidence/evaluation trace is attached to the PR metadata",
+      "human approvals are described textually rather than bound to a certification candidate hash",
+      "no immutable certification bundle is present in the inspected PR metadata"
+    ]
+  },
+  "pesV2Shadow": {
+    "kairoCodeChanges": 0,
+    "modelCalls": 0,
+    "subAgents": 0,
+    "graphDatabaseRequired": false,
+    "contextSeed": "OBJ-KAIRO-FLOW-1A",
+    "graphRevision": 1,
+    "evidenceIds": [
+      "EVI-KAIRO-CI-33453091575",
+      "EVI-KAIRO-PRODUCT-33453091565",
+      "EVI-KAIRO-SECURITY-33453091562"
+    ],
+    "artifactIds": ["ART-KAIRO-PR-258"],
+    "evaluationIds": ["EVAL-KAIRO-FLOW-1A-SHADOW"],
+    "certificationExpectation": "blocked-before-final-certification-until-structured-human-approvals-exist",
+    "reason": "Pilot approval authorizes the PES v2 shadow validation, not final certification of the Kairo implementation SHA."
+  },
+  "measurement": {
+    "canMeasureInShadow": [
+      "trace completeness",
+      "context boundedness and hash stability",
+      "deterministic gate behavior",
+      "certification blocker quality",
+      "incremental model/sub-agent cost"
+    ],
+    "cannotMeasureFromSameImplementation": [
+      "accepted-output quality delta",
+      "rework delta",
+      "regression-rate delta",
+      "implementation wall-clock delta"
+    ],
+    "nextExperiment": "Run the next new contained Kairo slice under PES v2 from objective creation through certification and compare it with a matched historical PES v1 slice."
+  }
+}
