@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "version": 2,
-  "revision": 2,
+  "revision": 3,
   "nodes": [
     {
       "id": "OBJ-001",
@@ -64,6 +64,50 @@
         "sourceIds": [],
         "recordedAt": "2026-09-01T00:00:01.000Z"
       }
+    },
+    {
+      "id": "OBJ-003-V2",
+      "logicalId": "OBJ-003",
+      "supersedesId": "OBJ-003",
+      "type": "Objective",
+      "status": "verified",
+      "title": "Implement durable Graph Memory",
+      "successCriteria": [
+        "Graph writes are append-oriented and provenance-bearing",
+        "Conflicting id rewrites are rejected",
+        "Corrections and supersessions preserve old state",
+        "Cross-session queries explain accepted artifacts and failed attempts",
+        "Graph persistence detects stale revisions"
+      ],
+      "memoryProvenance": {
+        "eventId": "GM-000003",
+        "revision": 3,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-04",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:02.000Z"
+      }
+    },
+    {
+      "id": "OBJ-004",
+      "type": "Objective",
+      "status": "active",
+      "title": "Implement ranked bounded Context Builder",
+      "successCriteria": [
+        "Relevant nodes are ranked before low-value history",
+        "Verified and recent state is preferred without hiding contradictions",
+        "Superseded seeds resolve to current state",
+        "Serialized context remains inside a declared token budget",
+        "Context hashing detects unchanged task context"
+      ],
+      "memoryProvenance": {
+        "eventId": "GM-000003",
+        "revision": 3,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-04",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:02.000Z"
+      }
     }
   ],
   "edges": [
@@ -93,6 +137,34 @@
         "runId": "VS-03",
         "sourceIds": [],
         "recordedAt": "2026-09-01T00:00:01.000Z"
+      }
+    },
+    {
+      "id": "EDGE-SUPERSEDES-OBJ-003-V2-OBJ-003",
+      "type": "SUPERSEDES",
+      "from": "OBJ-003-V2",
+      "to": "OBJ-003",
+      "memoryProvenance": {
+        "eventId": "GM-000003",
+        "revision": 3,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-04",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:02.000Z"
+      }
+    },
+    {
+      "id": "EDGE-OBJ-004-OBJ-003-V2",
+      "type": "DEPENDS_ON",
+      "from": "OBJ-004",
+      "to": "OBJ-003-V2",
+      "memoryProvenance": {
+        "eventId": "GM-000003",
+        "revision": 3,
+        "actorId": "pes-v2-governance",
+        "runId": "VS-04",
+        "sourceIds": [],
+        "recordedAt": "2026-09-01T00:00:02.000Z"
       }
     }
   ],
@@ -129,6 +201,24 @@
         "EDGE-OBJ-003-OBJ-002"
       ],
       "recordedAt": "2026-09-01T00:00:01.000Z"
+    },
+    {
+      "id": "GM-000003",
+      "revision": 3,
+      "operation": "supersede-and-append",
+      "actorId": "pes-v2-governance",
+      "runId": "VS-04",
+      "reason": "Record VS-03 completion immutably and activate VS-04 Context Builder",
+      "sourceIds": [],
+      "addedNodeIds": [
+        "OBJ-003-V2",
+        "OBJ-004"
+      ],
+      "addedEdgeIds": [
+        "EDGE-SUPERSEDES-OBJ-003-V2-OBJ-003",
+        "EDGE-OBJ-004-OBJ-003-V2"
+      ],
+      "recordedAt": "2026-09-01T00:00:02.000Z"
     }
   ]
 }

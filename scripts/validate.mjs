@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { validateBudget, invariant } from '../src/core.mjs';
+import { validateContextPolicy } from '../src/context-engine.mjs';
 import { validateGraphMemoryState } from '../src/graph-memory.mjs';
 import { validateEvaluatorContract } from '../src/ratchet-engine.mjs';
 
@@ -13,7 +14,9 @@ const ratchetRuns = read('state/ratchet-runs.json');
 invariant(config.version === 2, 'PES configuration must be version 2');
 invariant(['lite','standard','enterprise'].includes(config.mode), 'Unsupported PES mode');
 validateBudget(config.budgets);
+validateContextPolicy(config.context);
 
+invariant(config.context.maxTokens <= config.budgets.maxTokens, 'Context token budget cannot exceed run token budget');
 invariant(config.ratchet.requireEvaluationBeforeKeep === true, 'PES v2 requires evaluation before keep');
 invariant(config.ratchet.revertOnRegression === true, 'PES v2 requires revert on regression');
 invariant(Number.isInteger(config.ratchet.maxAttemptsPerRun) && config.ratchet.maxAttemptsPerRun > 0, 'ratchet.maxAttemptsPerRun must be positive');
@@ -41,4 +44,4 @@ if (current.activeSlice) {
   invariant(governance.lifecycle.includes(current.activeSlice.state) || governance.exceptionStates.includes(current.activeSlice.state), `Invalid active slice state: ${current.activeSlice.state}`);
 }
 
-console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} event(s), ${ratchetRuns.runs.length} ratchet run(s), mode=${config.mode}`);
+console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} event(s), ${ratchetRuns.runs.length} ratchet run(s), context<=${config.context.maxTokens} tokens, mode=${config.mode}`);
