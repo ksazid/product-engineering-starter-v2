@@ -13,7 +13,7 @@ Ranked Bounded Context → Plan → Execute → Evaluate → Keep / Revise / Rev
                                                  ↓
                                       Graph-aware PES Gates
                                                  ↓
-                                          Certification
+                                      Exact-SHA Certification
                                                  ↓
                                            Human Approval
 ```
@@ -30,7 +30,8 @@ PES v2 does **not** make graph databases or multi-agent swarms mandatory. The de
 - Verified/recent state is preferred while material contradictions remain visible.
 - Superseded seeds resolve to current state before retrieval.
 - Context packs are token-bounded and content-hashed so unchanged work can be detected.
-- Governance gates now verify lifecycle order, approvals, permissions, linked evidence, context freshness, contradictions, protected paths and delivery-graph readiness.
+- Governance gates verify lifecycle order, approvals, permissions, linked evidence, context freshness, contradictions, protected paths and delivery-graph readiness.
+- Certification binds the exact commit SHA to context, gate result, graph-linked artifacts/evidence/evaluations, candidate hash and human approval.
 - Failed attempts remain useful lineage.
 - Cost, token, concurrency, retry, wall-clock and graph-write budgets are explicit.
 - Multi-agent execution remains risk-triggered and optional.
@@ -58,33 +59,30 @@ npm run graph:validate
 Build ranked bounded context:
 
 ```bash
-npm run context:build -- OBJ-005
-```
-
-Check whether context changed from a prior pack:
-
-```bash
-npm run context:build -- OBJ-005 --prior-hash <sha256>
+npm run context:build -- OBJ-006
 ```
 
 Evaluate a PES lifecycle transition:
 
 ```bash
-npm run gate:evaluate -- testing path/to/gate-input.json
+npm run gate:evaluate -- certification path/to/gate-input.json
+```
+
+Build and verify certification bundles:
+
+```bash
+npm run cert -- candidate certification-input.json
+npm run cert -- finalize candidate.json approval.json
+npm run cert -- verify certified.json
+npm run cert -- store certified.json
 ```
 
 Inspect durable graph memory:
 
 ```bash
-npm run graph:memory -- current OBJ-004
-npm run graph:memory -- lineage OBJ-005
-npm run graph:memory -- provenance OBJ-005
-```
-
-Publish a finalized Ratchet attempt:
-
-```bash
-npm run graph:memory -- publish-attempt RUN-1 ATT-2
+npm run graph:memory -- current OBJ-005
+npm run graph:memory -- lineage OBJ-006
+npm run graph:memory -- provenance OBJ-006
 ```
 
 ## Current implementation status
@@ -93,7 +91,8 @@ npm run graph:memory -- publish-attempt RUN-1 ATT-2
 - **VS-02 Ratchet Engine** ✅ — durable attempts, evaluator contracts, artifact versions, reversible execution and recovery.
 - **VS-03 Graph Memory** ✅ — append-oriented state, provenance, correction/supersession, cross-session lineage queries and Ratchet publication.
 - **VS-04 Context Builder** ✅ — relevance ranking, recency, verified-state preference, contradiction inclusion, token-aware serialization and context hashing.
-- **VS-05 PES Gate Integration** — deterministic lifecycle/approval/evidence/risk/protected-path gates and delivery-graph triggers.
-- **VS-06+** — exact-SHA certification bundles and measured multi-agent execution.
+- **VS-05 PES Gate Integration** ✅ — deterministic lifecycle/approval/evidence/risk/protected-path gates and delivery-graph triggers.
+- **VS-06 Certification** — exact-SHA candidate bundles, graph-linked traceability, human hash-bound approval, immutable certification store and historical verification.
+- **VS-07** — measured multi-agent execution only after benchmarks show value.
 
-See `docs/PES-V2-DESIGN.md`, `docs/VS-02-RATCHET-ENGINE.md`, `docs/VS-03-GRAPH-MEMORY.md`, `docs/VS-04-CONTEXT-BUILDER.md`, `docs/VS-05-PES-GATE-INTEGRATION.md` and `docs/MIGRATION-FROM-V1.md`.
+See `docs/PES-V2-DESIGN.md`, `docs/VS-02-RATCHET-ENGINE.md`, `docs/VS-03-GRAPH-MEMORY.md`, `docs/VS-04-CONTEXT-BUILDER.md`, `docs/VS-05-PES-GATE-INTEGRATION.md`, `docs/VS-06-CERTIFICATION.md` and `docs/MIGRATION-FROM-V1.md`.
