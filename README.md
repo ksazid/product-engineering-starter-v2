@@ -72,8 +72,8 @@ Build and verify certification bundles:
 
 ```bash
 npm run cert -- candidate certification-input.json
-npm run cert -- finalize candidate.json approval.json
-npm run cert -- verify certified.json
+npm run cert -- finalize candidate.json approval.json <exact-commit-sha>
+npm run cert -- verify certified.json [exact-commit-sha]
 npm run cert -- store certified.json
 ```
 
