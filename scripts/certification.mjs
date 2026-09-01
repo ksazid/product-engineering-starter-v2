@@ -29,7 +29,8 @@ if (command === 'candidate') {
 } else if (command === 'finalize') {
   const candidatePath = process.argv[3];
   const approvalPath = process.argv[4];
-  if (!candidatePath || !approvalPath) usage();
+  const currentCommitSha = process.argv[5];
+  if (!candidatePath || !approvalPath || !currentCommitSha) usage();
   const candidate = read(candidatePath);
   const approval = read(approvalPath);
   const certified = finalizeCertification(candidate, approval, {
@@ -37,18 +38,20 @@ if (command === 'candidate') {
     governance,
     policy,
     authority: config.authority,
-    currentCommitSha: candidate.commitSha
+    currentCommitSha
   });
   writeStdout(certified);
 } else if (command === 'verify') {
   const bundlePath = process.argv[3];
+  const currentCommitSha = process.argv[4] ?? null;
   if (!bundlePath) usage();
   const bundle = read(bundlePath);
   const result = verifyCertifiedBundle(bundle, {
     graph,
     governance,
     policy,
-    authority: config.authority
+    authority: config.authority,
+    currentCommitSha
   });
   writeStdout(result);
   process.exitCode = result.ok ? 0 : 1;
@@ -77,8 +80,8 @@ if (command === 'candidate') {
 function usage() {
   console.error('Usage:');
   console.error('  npm run cert -- candidate <input.json>');
-  console.error('  npm run cert -- finalize <candidate.json> <approval.json>');
-  console.error('  npm run cert -- verify <bundle.json>');
+  console.error('  npm run cert -- finalize <candidate.json> <approval.json> <current-commit-sha>');
+  console.error('  npm run cert -- verify <bundle.json> [current-commit-sha]');
   console.error('  npm run cert -- store <bundle.json>');
   process.exit(2);
 }
