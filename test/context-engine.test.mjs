@@ -78,7 +78,7 @@ test('context hash is deterministic and changes when relevant graph state change
 });
 
 test('serialization stays inside declared token budget and omits lower-ranked nodes first', () => {
-  const constrained = { ...policy, maxNodes: 7, maxTokens: 900 };
+  const constrained = { ...policy, maxNodes: 7, maxTokens: 600 };
   const result = buildRankedContext(memory(), ['OBJ-1'], constrained);
   assert.ok(result.estimatedTokens <= constrained.maxTokens);
   assert.ok(result.nodes.some(node => node.id === 'OBJ-1'));
