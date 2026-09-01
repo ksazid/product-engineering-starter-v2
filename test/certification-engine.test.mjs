@@ -12,6 +12,7 @@ import {
   verifyCertificationCandidate,
   verifyCertifiedBundle
 } from '../src/certification-engine.mjs';
+import { appendGraphUpdate } from '../src/graph-memory.mjs';
 
 const governance = {
   approvalTypes: ['scope', 'policy', 'implementation', 'certification', 'release', 'production-enable'],
@@ -116,8 +117,28 @@ function baseInput(overrides = {}) {
   };
 }
 
+function certify(currentGraph = graph()) {
+  const candidate = buildCertificationCandidate(baseInput({ graph: currentGraph }));
+  const finalApproval = {
+    type: 'certification', status: 'approved', actorType: 'human', scopeId: 'VS-1',
+    commitSha, candidateHash: candidate.candidateHash, approvedAt: '2026-09-01T00:02:00Z'
+  };
+  return finalizeCertification(candidate, finalApproval, {
+    graph: currentGraph,
+    governance,
+    policy,
+    authority,
+    currentCommitSha: commitSha,
+    certifiedAt: '2026-09-01T00:03:00Z'
+  });
+}
+
 test('certification policy validates against governance vocabulary', () => {
   assert.equal(validateCertificationPolicy(policy, governance), true);
+});
+
+test('candidate creation rejects non-exact commit identifiers', () => {
+  assert.throws(() => buildCertificationCandidate(baseInput({ commitSha: 'main' })), /exact 40-character commit SHA/);
 });
 
 test('builds deterministic candidate tied to exact SHA, context, gate and graph trace', () => {
@@ -125,7 +146,10 @@ test('builds deterministic candidate tied to exact SHA, context, gate and graph 
   assert.equal(candidate.status, 'candidate');
   assert.equal(candidate.commitSha, commitSha);
   assert.equal(candidate.contextHash, 'ctx-cert-1');
+  assert.equal(candidate.contextSnapshot.contextHash, 'ctx-cert-1');
+  assert.equal(candidate.gateSnapshot.requestedState, 'certification');
   assert.equal(candidate.trace.length, 3);
+  assert.ok(candidate.trace.every(item => item.nodeHash?.length === 64));
   assert.equal(candidate.candidateHash.length, 64);
 });
 
@@ -179,31 +203,33 @@ test('final certification approval must be human and bind exact SHA plus candida
 });
 
 test('certified bundle verification detects tampering', () => {
-  const candidate = buildCertificationCandidate(baseInput());
-  const finalApproval = {
-    type: 'certification', status: 'approved', actorType: 'human', scopeId: 'VS-1',
-    commitSha, candidateHash: candidate.candidateHash, approvedAt: '2026-09-01T00:02:00Z'
-  };
-  const certified = finalizeCertification(candidate, finalApproval, {
-    graph: graph(), context: context(), gateResult: gateResult(), governance, policy, authority, currentCommitSha: commitSha
-  });
+  const certified = certify();
   const tampered = { ...certified, unresolvedRisks: [{ id: 'R', level: 'high' }] };
   const result = verifyCertifiedBundle(tampered, {
-    graph: graph(), context: context(), gateResult: gateResult(), governance, policy, authority, currentCommitSha: commitSha
+    graph: graph(), governance, policy, authority, currentCommitSha: commitSha
   });
   assert.equal(result.ok, false);
   assert.ok(result.blockers.some(item => item.code === 'certified-hash-mismatch' || item.code === 'blocking-unresolved-risk'));
 });
 
+test('certified bundle remains verifiable after unrelated append-only graph revisions', () => {
+  const originalGraph = graph();
+  const certified = certify(originalGraph);
+  const laterGraph = appendGraphUpdate(originalGraph, {
+    nodes: [{ id: 'DEC-LATER', type: 'Decision', status: 'verified', title: 'Later unrelated decision' }],
+    edges: []
+  }, {
+    actorId: 'test',
+    reason: 'append unrelated state after certification',
+    eventId: 'GM-000001',
+    recordedAt: '2026-09-01T01:00:00Z'
+  }).state;
+  const result = verifyCertifiedBundle(certified, { graph: laterGraph, governance, policy, authority });
+  assert.equal(result.ok, true);
+});
+
 test('certification store is append-only and rejects duplicate bundle identity', () => {
-  const candidate = buildCertificationCandidate(baseInput());
-  const finalApproval = {
-    type: 'certification', status: 'approved', actorType: 'human', scopeId: 'VS-1',
-    commitSha, candidateHash: candidate.candidateHash, approvedAt: '2026-09-01T00:02:00Z'
-  };
-  const certified = finalizeCertification(candidate, finalApproval, {
-    graph: graph(), context: context(), gateResult: gateResult(), governance, policy, authority, currentCommitSha: commitSha
-  });
+  const certified = certify();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pes-cert-store-'));
   const store = new JsonCertificationStore(path.join(dir, 'certifications.json'));
   store.append(certified);
