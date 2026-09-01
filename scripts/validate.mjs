@@ -4,6 +4,7 @@ import { certificationBundleHash, validateCertificationPolicy, verifyCertifiedBu
 import { validateContextPolicy } from '../src/context-engine.mjs';
 import { validateGatePolicy } from '../src/gate-engine.mjs';
 import { validateGraphMemoryState } from '../src/graph-memory.mjs';
+import { validateMultiAgentPolicy } from '../src/multi-agent-engine.mjs';
 import { validateEvaluatorContract } from '../src/ratchet-engine.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -11,7 +12,9 @@ const config = read('.engineering/pes-v2.json');
 const governance = read('delivery/governance.json');
 const gates = read('delivery/gates.json');
 const certificationPolicy = read('delivery/certification-policy.json');
+const multiAgentPolicy = read('delivery/multi-agent-policy.json');
 const certifications = read('state/certifications.json');
+const executionBenchmarks = read('state/execution-benchmarks.json');
 const current = read('delivery/current-slice.json');
 const graph = read('state/graph.json');
 const ratchetRuns = read('state/ratchet-runs.json');
@@ -62,13 +65,32 @@ for (const bundle of certifications.records) {
   invariant(!certifiedSliceShas.has(key), `Duplicate certified slice SHA: ${key}`);
   certifiedSliceShas.add(key);
   invariant(bundle.certifiedHash === certificationBundleHash(bundle), `Certification bundle hash mismatch: ${bundle.bundleId}`);
-  const verification = verifyCertifiedBundle(bundle, {
-    graph,
-    governance,
-    policy: certificationPolicy,
-    authority: config.authority
-  });
+  const verification = verifyCertifiedBundle(bundle, { graph, governance, policy: certificationPolicy, authority: config.authority });
   invariant(verification.ok, `Stored certification ${bundle.bundleId} failed verification: ${verification.blockers.map(item => item.code).join(', ')}`);
+}
+
+invariant(config.multiAgent?.available === true, 'PES v2 measured multi-agent capability must be available for assessment');
+invariant(config.multiAgent.defaultEnabled === false, 'Multi-agent execution must not be enabled by default');
+invariant(config.multiAgent.activationRequiresBenchmark === true, 'Multi-agent activation must require a measured benchmark');
+invariant(config.multiAgent.policyFile === 'delivery/multi-agent-policy.json', 'Multi-agent policy file must be delivery/multi-agent-policy.json');
+invariant(config.multiAgent.benchmarkStoreFile === 'state/execution-benchmarks.json', 'Benchmark store file must be state/execution-benchmarks.json');
+validateMultiAgentPolicy(multiAgentPolicy, governance);
+if (config.mode === 'lite') {
+  invariant(config.multiAgent.enabled === false, 'Lite mode must keep multi-agent execution disabled');
+  invariant(config.budgets.maxSubAgents === 0, 'Lite mode must not allocate sub-agents');
+  invariant(config.budgets.maxConcurrentWorkers === 1, 'Lite mode must remain single-worker');
+}
+
+invariant(executionBenchmarks.schemaVersion === 1 && Array.isArray(executionBenchmarks.records), 'Invalid execution benchmark store');
+const benchmarkIds = new Set();
+for (const record of executionBenchmarks.records) {
+  invariant(typeof record.id === 'string' && record.id, 'Benchmark record requires id');
+  invariant(!benchmarkIds.has(record.id), `Duplicate benchmark record id: ${record.id}`);
+  benchmarkIds.add(record.id);
+  invariant(typeof record.planId === 'string' && record.planId, `Benchmark ${record.id} requires planId`);
+  invariant(typeof record.planHash === 'string' && record.planHash.length === 64, `Benchmark ${record.id} requires planHash`);
+  invariant(typeof record.benchmarkHash === 'string' && record.benchmarkHash.length === 64, `Benchmark ${record.id} requires benchmarkHash`);
+  invariant(typeof record.activationReady === 'boolean', `Benchmark ${record.id} requires activationReady`);
 }
 
 invariant(ratchetRuns.schemaVersion === 1 && Array.isArray(ratchetRuns.runs), 'Invalid ratchet run store');
@@ -91,4 +113,4 @@ if (current.activeSlice) {
   invariant(governance.implementationPermissions.includes(current.activeSlice.implementationPermission), `Invalid implementation permission: ${current.activeSlice.implementationPermission}`);
 }
 
-console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} graph event(s), ${ratchetRuns.runs.length} ratchet run(s), ${certifications.records.length} certification(s), context<=${config.context.maxTokens} tokens, gates=v${gates.version}, certification=v${certificationPolicy.version}, mode=${config.mode}`);
+console.log(`PES v2 validation passed: graph revision=${graph.revision}, ${graph.nodes.length} nodes, ${graph.edges.length} edges, ${graph.events.length} graph event(s), ${ratchetRuns.runs.length} ratchet run(s), ${certifications.records.length} certification(s), ${executionBenchmarks.records.length} execution benchmark(s), multiAgent=${config.multiAgent.enabled ? 'enabled' : 'disabled'}, mode=${config.mode}`);
